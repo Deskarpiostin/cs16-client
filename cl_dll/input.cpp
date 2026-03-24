@@ -64,6 +64,7 @@ cvar_t	*cl_yawspeed;
 cvar_t	*cl_pitchspeed;
 cvar_t	*cl_anglespeedkey;
 cvar_t	*cl_vsmoothing;
+cvar_t	*cl_autojump;
 /*
 ===============================================================================
 
@@ -101,6 +102,7 @@ kbutton_t	in_strafe;
 kbutton_t	in_speed;
 kbutton_t	in_use;
 kbutton_t	in_jump;
+kbutton_t	in_ducktap;
 kbutton_t	in_attack;
 kbutton_t	in_attack2;
 kbutton_t	in_up;
@@ -463,6 +465,8 @@ void IN_JumpDown (void)
 
 }
 void IN_JumpUp (void) {KeyUp(&in_jump);}
+void IN_DuckTapDown(void) {KeyDown(&in_ducktap);}
+void IN_DuckTapUp(void) {KeyUp(&in_ducktap);}
 void IN_DuckDown(void)
 {
 	KeyDown(&in_duck);
@@ -766,6 +770,17 @@ Set bResetState to 1 to clear old state info
 int CL_ButtonBits( int bResetState )
 {
 	int bits = 0;
+	static bool s_bWasOnGround = false;
+	static int s_iDuckTapFrames = 0;
+	cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
+	const bool bOnGround = pLocal && ((pLocal->curstate.flags & FL_ONGROUND) != 0);
+
+	if( !s_bWasOnGround && bOnGround && (in_ducktap.state & 1) )
+	{
+		s_iDuckTapFrames = 1;
+	}
+
+	s_bWasOnGround = bOnGround;
 
 	if ( in_attack.state & 3 )
 	{
@@ -779,10 +794,20 @@ int CL_ButtonBits( int bResetState )
 	{
 		bits |= IN_DUCK;
 	}
+
+	if( s_iDuckTapFrames > 0 )
+	{
+		bits |= IN_DUCK;
+	}
  
 	if (in_jump.state & 3)
 	{
 		bits |= IN_JUMP;
+	}
+
+	if( cl_autojump && cl_autojump->value && !bOnGround )
+	{
+		bits &= ~IN_JUMP;
 	}
 
 	if ( in_forward.state & 3 )
@@ -855,6 +880,7 @@ int CL_ButtonBits( int bResetState )
 	{
 		in_attack.state &= ~2;
 		in_duck.state &= ~2;
+		in_ducktap.state &= ~2;
 		in_jump.state &= ~2;
 		in_forward.state &= ~2;
 		in_back.state &= ~2;
@@ -867,6 +893,10 @@ int CL_ButtonBits( int bResetState )
 		in_reload.state &= ~2;
 		in_alt1.state &= ~2;
 		in_score.state &= ~2;
+		if( s_iDuckTapFrames > 0 )
+		{
+			--s_iDuckTapFrames;
+		}
 	}
 
 	return bits;
@@ -937,6 +967,8 @@ void InitInput (void)
 	gEngfuncs.pfnAddCommand ("-use", IN_UseUp);
 	gEngfuncs.pfnAddCommand ("+jump", IN_JumpDown);
 	gEngfuncs.pfnAddCommand ("-jump", IN_JumpUp);
+	gEngfuncs.pfnAddCommand ("+ducktap", IN_DuckTapDown);
+	gEngfuncs.pfnAddCommand ("-ducktap", IN_DuckTapUp);
 	gEngfuncs.pfnAddCommand ("impulse", IN_Impulse);
 	gEngfuncs.pfnAddCommand ("+klook", IN_KLookDown);
 	gEngfuncs.pfnAddCommand ("-klook", IN_KLookUp);
@@ -971,6 +1003,7 @@ void InitInput (void)
 	cl_pitchdown		= gEngfuncs.pfnRegisterVariable ( "cl_pitchdown", "89", 0 );
 
 	cl_vsmoothing		= gEngfuncs.pfnRegisterVariable ( "cl_vsmoothing", "0.05", FCVAR_ARCHIVE );
+	cl_autojump			= gEngfuncs.pfnRegisterVariable ( "cl_autojump", "1", FCVAR_ARCHIVE );
 
 	m_pitch			    = gEngfuncs.pfnRegisterVariable ( "m_pitch","0.022", FCVAR_ARCHIVE );
 	m_yaw				= gEngfuncs.pfnRegisterVariable ( "m_yaw","0.022", FCVAR_ARCHIVE );
