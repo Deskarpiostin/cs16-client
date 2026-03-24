@@ -35,6 +35,7 @@ version.
 #include "parsemsg.h"
 #include "vgui_parser.h"
 #include <string.h>
+#include "const.h"
 #include "draw_util.h"
 
 int CHudTimer::Init()
@@ -43,6 +44,10 @@ int CHudTimer::Init()
 	HOOK_MESSAGE( gHUD.m_Timer, ShowTimer );
 	m_iFlags = 0;
 	m_bPanicColorChange = false;
+	m_pHudSpeedometer = CVAR_CREATE( "hud_speedometer", "1", FCVAR_ARCHIVE );
+	m_pHudJumpmeter = CVAR_CREATE( "hud_jumpmeter", "1", FCVAR_ARCHIVE );
+	m_flLastJumpSpeed = 0.0f;
+	m_bWasOnGround = false;
 	gHUD.AddHudElem(this);
 	return 1;
 }
@@ -92,6 +97,42 @@ int CHudTimer::Draw( float fTime )
 
 	int x = (ScreenWidth - totalWidth) / 2;
 	int y = ScreenHeight - 1.5 * gHUD.m_iFontHeight;
+
+	cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
+	float flSpeed = 0.0f;
+	if( pLocal )
+	{
+		const float vx = pLocal->curstate.velocity[0];
+		const float vy = pLocal->curstate.velocity[1];
+		flSpeed = sqrtf(vx * vx + vy * vy);
+
+		const bool bOnGround = (pLocal->curstate.flags & FL_ONGROUND) != 0;
+		if( m_bWasOnGround && !bOnGround )
+		{
+			m_flLastJumpSpeed = flSpeed;
+		}
+		m_bWasOnGround = bOnGround;
+	}
+	else
+	{
+		m_bWasOnGround = false;
+	}
+
+	if( m_pHudJumpmeter && m_pHudJumpmeter->value )
+	{
+		char jumpSpeedText[32];
+		snprintf(jumpSpeedText, sizeof(jumpSpeedText), "JMP %3.0f", m_flLastJumpSpeed);
+		const int jumpTextX = (ScreenWidth - DrawUtils::HudStringLen(jumpSpeedText)) / 2;
+		DrawUtils::DrawHudString(jumpTextX, y - gHUD.m_iFontHeight * 2, ScreenWidth, jumpSpeedText, r, g, b);
+	}
+
+	if( m_pHudSpeedometer && m_pHudSpeedometer->value )
+	{
+		char speedText[32];
+		snprintf(speedText, sizeof(speedText), "SPD %3.0f", flSpeed);
+		const int speedTextX = (ScreenWidth - DrawUtils::HudStringLen(speedText)) / 2;
+		DrawUtils::DrawHudString(speedTextX, y - gHUD.m_iFontHeight, ScreenWidth, speedText, r, g, b);
+	}
 
 	SPR_Set(gHUD.GetSprite(m_HUD_timer), r, g, b);
 	SPR_DrawAdditive(0, x, y, &gHUD.GetSpriteRect(m_HUD_timer));

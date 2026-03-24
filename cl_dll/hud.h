@@ -802,6 +802,10 @@ private:
 	float m_fStartTime;
 	bool m_bPanicColorChange;
 	float m_flPanicTime;
+	cvar_t *m_pHudSpeedometer;
+	cvar_t *m_pHudJumpmeter;
+	float m_flLastJumpSpeed;
+	bool m_bWasOnGround;
 };
 //
 //-----------------------------------------------------
