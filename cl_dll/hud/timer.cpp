@@ -106,7 +106,7 @@ int CHudTimer::Draw( float fTime )
 		const float vy = pLocal->curstate.velocity[1];
 		flSpeed = sqrtf(vx * vx + vy * vy);
 
-		const bool bOnGround = (pLocal->curstate.flags & FL_ONGROUND) != 0;
+		const bool bOnGround = (pLocal->curstate.onground != -1);
 		if( m_bWasOnGround && !bOnGround )
 		{
 			m_flLastJumpSpeed = flSpeed;

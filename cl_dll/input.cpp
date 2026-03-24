@@ -773,7 +773,7 @@ int CL_ButtonBits( int bResetState )
 	static bool s_bWasOnGround = false;
 	static int s_iDuckTapFrames = 0;
 	cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
-	const bool bOnGround = pLocal && ((pLocal->curstate.flags & FL_ONGROUND) != 0);
+	const bool bOnGround = pLocal && (pLocal->curstate.onground != -1);
 
 	if( !s_bWasOnGround && bOnGround && (in_ducktap.state & 1) )
 	{
